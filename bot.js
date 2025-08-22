@@ -1,4 +1,4 @@
-// ===================== XATSU RADIO BOT (tam sürüm – hızlı/otokayıt + 3x3 buton) =====================
+// ===================== XATSU RADIO BOT (güncellenmiş sürüm – hızlı/otokayıt + 2x2 buton) =====================
 // Uyarıları sustur
 const originalEmit = process.emit;
 process.emit = function (name, data) {
@@ -70,37 +70,21 @@ const client = new Client({
   }
 });
 
-// ------------------------------ İstasyonlar (3x3) ---------------------------------
+// ------------------------------ İstasyonlar (2x2) ---------------------------------
 // Her istasyon birden fazla URL içerebilir (en hızlısını seçeceğiz).
 const STATIONS = [
   { name: 'PowerTürk', urls: [
-    'https://live.powerapp.com.tr/powerturk/mpeg/icecast.audio?/;stream.mp3',
-    'https://live.powerapp.com.tr/powerturk/mpeg/icecast.audio'
-  ]},
-  { name: 'Metro FM', urls: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FM.mp3'
+    'https://live.powerapp.com.tr/powerturk/mpeg/icecast.audio?/;stream.mp3'
   ]},
   { name: 'Süper FM', urls: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM.mp3'
-  ]},
-  { name: 'Best FM', urls: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/BEST_FM.mp3'
-  ]},
-  { name: 'Power FM', urls: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/POWER_FM.mp3'
-  ]},
-  { name: 'Power Love', urls: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/POWERLOVE.mp3'
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM128AAC.aac?'
   ]},
   { name: 'Fenomen', urls: [
-    'https://fenomenturk.listenfenomen.com/fenomen/128/icecast.audio'
-  ]},
-  { name: 'Number1 FM', urls: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/NUMBER1_FM.mp3'
+    'https://live.radyofenomen.com/fenomen/128/icecast.audio?'
   ]},
   { name: 'JoyTürk', urls: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK.mp3'
-  ]},
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK128AAC.aac?'
+  ]}
 ];
 
 // ------------------------------ Durum ---------------------------------
@@ -167,11 +151,11 @@ client.on('messageCreate', async (message) => {
           `⏰ Çalışma Süresi: ${Math.floor(process.uptime()/60)} dk`
         );
         break;
-      case '!radio': // Mevcut basit bilgi mesajı kalsın; grid için !radyo kullan
+      case '!radio': // Mevcut basit bilgi mesajı
         message.reply(
           `📻 **Mevcut Radyo**\n` +
           `🎵 İstasyon: ${STATIONS[currentStation].name}\n` +
-          `🔄 Grid için: \`!radyo\``
+          `🔄 İstasyon seçmek için: \`!radyo\``
         );
         break;
       case '!switchurl': // aktif istasyon içinde URL değiştir (manuel)
@@ -179,9 +163,9 @@ client.on('messageCreate', async (message) => {
         message.reply(`🔄 URL index değiştirildi (${currentUrlIndex+1}/${STATIONS[currentStation].urls.length}). Yeni stream için \`!play\` yaz.`);
         if (isPlaying) safeCleanup();
         break;
-      case '!radyo': // 3x3 grid gönder
+      case '!radyo': // 2x2 grid gönder
         await message.reply({
-          content: `🎛️ İstasyon seç (mevcut: **${STATIONS[currentStation].name}**)`,
+          content: `🎛️ **Radyo İstasyonu Seç** (şu anda: **${STATIONS[currentStation].name}**)\n📻 Butonlara tıklayarak istasyon değiştirebilirsin!`,
           components: stationButtons()
         });
         break;
@@ -213,7 +197,7 @@ async function pickFastestRadioUrl(candidates, fallbackIndex = 0, perReqTimeout 
       if (ok && (ct.includes('audio') || ct.includes('mpeg') || ct.includes('mp3') || ct === '')) {
         return resolve(idx);
       }
-      // HEAD başarısızsa GET Range’e geç
+      // HEAD başarısızsa GET Range'e geç
       reject(new Error('head not good'));
     } catch (e) {
       reject(e);
@@ -280,19 +264,24 @@ async function pickFastestRadioUrl(candidates, fallbackIndex = 0, perReqTimeout 
   }
 }
 
-// --------------------------- 3x3 Buton Oluşturucu -----------------------
+// --------------------------- 2x2 Buton Oluşturucu -----------------------
 function stationButtons() {
   const rows = [];
-  for (let r = 0; r < 3; r++) {
+  
+  // 2x2 grid için (4 istasyon)
+  for (let r = 0; r < 2; r++) {
     const row = new ActionRowBuilder();
-    for (let c = 0; c < 3; c++) {
-      const i = r * 3 + c;
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`radio:${i}`)
-          .setLabel(STATIONS[i].name)
-          .setStyle(i === currentStation ? ButtonStyle.Success : ButtonStyle.Secondary)
-      );
+    for (let c = 0; c < 2; c++) {
+      const i = r * 2 + c;
+      if (i < STATIONS.length) {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`radio:${i}`)
+            .setLabel(STATIONS[i].name)
+            .setStyle(i === currentStation ? ButtonStyle.Success : ButtonStyle.Secondary)
+            .setEmoji('📻')
+        );
+      }
     }
     rows.push(row);
   }
@@ -403,19 +392,32 @@ async function handleHelp(message) {
   message.reply({
     embeds: [{
       color: 0x0099ff,
-      title: '🎵 Radyo Bot Komutları',
+      title: '🎵 XATSU Radyo Bot Komutları',
+      description: '**Türk radyo istasyonlarını Discord\'da dinle!**',
       fields: [
-        { name: '!play', value: 'Radyoyu çalar (bulunduğun ses kanalında)' },
-        { name: '!pause', value: 'Radyoyu duraklatır' },
-        { name: '!stop', value: 'Radyoyu durdurur ve çıkar' },
-        { name: '!ping', value: 'Gecikmeleri gösterir' },
-        { name: '!status', value: 'Durumu gösterir' },
-        { name: '!radio', value: 'Aktif istasyon bilgisini gösterir' },
-        { name: '!radyo', value: '3×3 istasyon butonlarını açar' },
-        { name: '!switchurl', value: 'Aktif istasyonun bir sonraki URL’sine geçer' },
-        { name: '!help', value: 'Bu yardım mesajı' },
+        { 
+          name: '🎛️ **Ana Komutlar**', 
+          value: '`!play` - Radyoyu başlat\n`!pause` - Radyoyu duraklat\n`!stop` - Radyoyu durdur ve çık\n`!radyo` - 📻 İstasyon seçici (2x2 grid)', 
+          inline: false 
+        },
+        { 
+          name: '📊 **Bilgi Komutları**', 
+          value: '`!status` - Bot durumunu göster\n`!radio` - Aktif istasyon bilgisi\n`!ping` - Gecikmeleri ölç', 
+          inline: false 
+        },
+        { 
+          name: '⚙️ **Diğer**', 
+          value: '`!switchurl` - URL değiştir (gelişmiş)\n`!test` - Bot test et\n`!help` - Bu menüyü göster', 
+          inline: false 
+        },
+        {
+          name: '📻 **Mevcut İstasyonlar**',
+          value: `${STATIONS.map((s, i) => `${i+1}. ${s.name}`).join('\n')}`,
+          inline: false
+        }
       ],
-      footer: { text: 'Xatsu Radio Bot' }
+      footer: { text: 'XATSU Radio Bot • Keyifli dinlemeler!' },
+      timestamp: new Date()
     }]
   });
 }
@@ -462,7 +464,7 @@ function safeCleanup() {
   }
 }
 
-// -------------------------- Buton Tıklama (3x3) -------------------------
+// -------------------------- Buton Tıklama (2x2) -------------------------
 client.on('interactionCreate', async (i) => {
   if (!i.isButton()) return;
   if (!i.customId.startsWith('radio:')) return;
@@ -474,22 +476,33 @@ client.on('interactionCreate', async (i) => {
 
   const member = await i.guild.members.fetch(i.user.id);
   const vch = member?.voice?.channel;
-  if (!vch) return i.reply({ content: '❌ Bir ses kanalına katıl.', ephemeral: true });
+  if (!vch) return i.reply({ content: '❌ Önce bir ses kanalına katılman gerekiyor!', ephemeral: true });
 
   try {
+    // Önceki durumu temizle
+    safeCleanup();
+    
+    // Yeni istasyon ayarla
     currentStation = idx;
-    currentUrlIndex = 0; // yeni istasyonda ilk URL’den başla
+    currentUrlIndex = 0; // yeni istasyonda ilk URL'den başla
+    
+    await i.deferUpdate(); // Butonları hemen güncelle
+    
     await playInChannel(vch, () => {});
-    await i.update({
-      content: `🎵 Çalıyor: **${STATIONS[currentStation].name}**`,
+    
+    await i.editReply({
+      content: `🎵 **${STATIONS[currentStation].name}** çalıyor! 🎶\n📻 Başka bir istasyon seçmek için butona tıkla.`,
       components: stationButtons()
     });
   } catch (e) {
     console.error(e);
     if (i.deferred || i.replied) {
-      await i.editReply({ content: '❌ Başlatılamadı.', components: stationButtons() });
+      await i.editReply({ 
+        content: `❌ **${STATIONS[idx].name}** başlatılamadı. Tekrar dene.`, 
+        components: stationButtons() 
+      });
     } else {
-      await i.reply({ content: '❌ Başlatılamadı.', ephemeral: true });
+      await i.reply({ content: '❌ İstasyon başlatılamadı.', ephemeral: true });
     }
   }
 });
